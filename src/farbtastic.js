@@ -1,7 +1,7 @@
 // Farbtastic 2.0 alpha
 (function ($) {
   
-var __debug = true;
+var __debug = false;
 
 $.fn.farbtastic = function (options) {
   $.farbtastic(this, options);
@@ -52,13 +52,13 @@ $._farbtastic = function (container, options) {
   /**
    * Change color with HTML syntax #123456
    */
-  fb.setColor = function (color) {
+  fb.setColor = function (color, blockCallback) {
     var unpack = fb.unpack(color);
     if (fb.color != color && unpack) {
       fb.color = color;
       fb.rgb = unpack;
       fb.hsl = fb.RGBToHSL(fb.rgb);
-      fb.updateDisplay();
+      fb.updateDisplay(blockCallback);
     }
     return this;
   }
@@ -66,11 +66,11 @@ $._farbtastic = function (container, options) {
   /**
    * Change color with HSL triplet [0..1, 0..1, 0..1]
    */
-  fb.setHSL = function (hsl) {
+  fb.setHSL = function (hsl, blockCallback) {
     fb.hsl = hsl;
     fb.rgb = fb.HSLToRGB(hsl);
     fb.color = fb.pack(fb.rgb);
-    fb.updateDisplay();
+    fb.updateDisplay(blockCallback);
     return this;
   }
 
@@ -202,7 +202,7 @@ $._farbtastic = function (container, options) {
       angle1 = angle2 - nudge; color1 = color2; d1 = d2;
     }
     m.restore();
-    __debug && $('body').append('<div>drawCircle '+ (+(new Date()) - tm) +'ms');
+    __debug && console.log('drawCircle '+ (+(new Date()) - tm) +'ms');
   };
   
   /**
@@ -288,7 +288,7 @@ $._farbtastic = function (container, options) {
         cache.push([c, a]);
       });
     }    
-    __debug && $('body').append('<div>drawMask '+ (+(new Date()) - tm) +'ms');
+    __debug && console.log('drawMask '+ (+(new Date()) - tm) +'ms');
   }
 
   /**
@@ -326,7 +326,7 @@ $._farbtastic = function (container, options) {
   /**
    * Update the markers and styles
    */
-  fb.updateDisplay = function () {
+  fb.updateDisplay = function (blockCallback) {
     // Determine whether labels/markers should invert.
     fb.invert = (fb.rgb[0] * 0.3 + fb.rgb[1] * .59 + fb.rgb[2] * .11) <= 0.6;
 
@@ -336,23 +336,25 @@ $._farbtastic = function (container, options) {
     // Draw markers
     fb.drawMarkers();
     
-    // Linked elements or callback
-    if (typeof fb.callback == 'object') {
-      // Set background/foreground color
-      $(fb.callback).css({
-        backgroundColor: fb.color,
-        color: fb.invert ? '#fff' : '#000'
-      });
+    if (!blockCallback) {
+      // Linked elements or callback
+      if (typeof fb.callback == 'object') {
+        // Set background/foreground color
+        $(fb.callback).css({
+          backgroundColor: fb.color,
+          color: fb.invert ? '#fff' : '#000'
+        });
 
-      // Change linked value
-      $(fb.callback).each(function() {
-        if ((typeof this.value == 'string') && this.value != fb.color) {
-          this.value = fb.color;
-        }
-      });
-    }
-    else if (typeof fb.callback == 'function') {
-      fb.callback.call(fb, fb.color);
+        // Change linked value
+        $(fb.callback).each(function() {
+          if ((typeof this.value == 'string') && this.value != fb.color) {
+            this.value = fb.color;
+          }
+        });
+      }
+      else if (typeof fb.callback == 'function') {
+        fb.callback.call(fb, fb.color);
+      }
     }
   }
   
